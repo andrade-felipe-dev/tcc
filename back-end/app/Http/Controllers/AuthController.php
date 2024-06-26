@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,15 +15,9 @@ class AuthController extends Controller
         return $request->user();
     }
 
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string'],
-            'email' => ['required', 'email', 'unique:users'],
-            'password' => ['required', 'min:6']
-        ]);
-
-        $user = User::create($data);
+        $user = User::create($request->validated());
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -31,16 +27,11 @@ class AuthController extends Controller
         ];
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $data = $request->validate([
-            'email' => ['required', 'email', 'exists:users'],
-            'password' => ['required', 'min:6']
-        ]);
+        $user = User::where('email', $request['email'])->first();
 
-        $user = User::where('email', $data['email'])->first();
-
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (!$user || !Hash::check($request['password'], $user->password)) {
             return response([
                 'message' => 'Bad Credentials'
             ], 401);
